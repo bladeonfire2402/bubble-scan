@@ -1,3 +1,5 @@
+
+import 'dart:typed_data';
 import 'package:opencv_dart/opencv.dart' as cv;
 
 class CvMethod {
@@ -39,5 +41,17 @@ class CvMethod {
 
   static double getArea(cv.VecPoint cnt, {required cv.VecPoint vecPoint}) {
     return cv.contourArea(vecPoint);
+  }
+
+  static (Uint8List, Uint8List, Uint8List) imencodeImg({
+    required cv.Mat raw,
+    required cv.Mat scanned,
+    required cv.Mat thresh,
+  }) {
+    final (_, enraw) = cv.imencode('.png', raw);
+    final (_, enthresh) = cv.imencode('.png', thresh);
+    final (_, enscanned) = cv.imencode('.png', scanned);
+
+    return (enraw, enthresh, enscanned);
   }
 }

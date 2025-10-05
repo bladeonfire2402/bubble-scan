@@ -11,6 +11,8 @@ class OMRResult {
   final int wrong;
   final List<int?> picked;
   final Uint8List? imageBytes;
+  final Uint8List? rawBytes;
+  final Uint8List? threshBytes;
 
   OMRResult({
     required this.total,
@@ -18,6 +20,8 @@ class OMRResult {
     required this.wrong,
     required this.picked,
     required this.imageBytes,
+    required this.rawBytes,
+    required this.threshBytes,
   });
 }
 
@@ -29,21 +33,27 @@ class OMRScannerVer2 {
     final cv.Mat src = cv.imread(path);
     //Xử lý ảnh
     final cv.Mat scanned = _extractPaperAndWarp(src);
+    //Tách hết màu, chỉ để lại đen trắng
     final cv.Mat thresh = _toBinary(scanned);
 
+    //tiếp tục tìm đường viền
     final (cnts, _) = cv.findContours(
       thresh,
       cv.RETR_EXTERNAL,
       cv.CHAIN_APPROX_SIMPLE,
     );
 
+    //tìm kiếm những lựa chọn
     final bubbles = _filterBubbles(cnts);
     print(bubbles.length);
     if (bubbles.isEmpty) throw Exception("Không tìm thấy bubble nào.");
-
+    
+    //lọc ra các câu hỏi cùng hàng, một mảng 2 chiều
     List<List<int>> rows = _groupToRows(bubbles, N_CHOICES);
+    //Sắp xếp lại thứ tự câu hỏi trong 1 hàng theo thứ tự từ trái sang phải
     rows = _reOrdersRow(rows, cnts);
-
+    
+    //đoạn này chỉ để vẽ ảnh thôi
     for (int r = 0; r < rows.length; r++) {
       for (int c in rows[r]) {
         final rect = cv.boundingRect(cnts[c]);
@@ -61,9 +71,13 @@ class OMRScannerVer2 {
       }
     }
     cv.imwrite("debug_rows.png", src);
-
+    
+    //Danh sách các câu trả lời
     final picks = <int?>[];
+    //Số câu trả lời đúng
     int correct = 0;
+    
+    //lặp qua các câu hỏi, tìm câu trả lời
     for (var q = 0; q < rows.length; q++) {
       final choice = _pickAnswer(thresh, cnts, rows[q]);
       picks.add(choice);
@@ -80,7 +94,9 @@ class OMRScannerVer2 {
     final total = rows.length;
     final wrong = total - correct;
 
+    final (_, raw) = cv.imencode('.png', src);
     final (_, encode) = cv.imencode('.png', scanned);
+    final (_, black) = cv.imencode('.png', thresh);
 
     src.dispose();
     scanned.dispose();
@@ -92,6 +108,8 @@ class OMRScannerVer2 {
       wrong: wrong,
       picked: picks,
       imageBytes: encode,
+      rawBytes: raw,
+      threshBytes: black,
     );
   }
 
@@ -116,26 +134,31 @@ class OMRScannerVer2 {
       lowThresh: 50,
       highThresh: 150,
     );
-    
+
     //Lấy danh sách các đường viền
     final (cnts, _) = CvMethod.findContours(
       src: edged,
-      mode:  cv.RETR_EXTERNAL,
-      method:  cv.CHAIN_APPROX_SIMPLE,
+      mode: cv.RETR_EXTERNAL,
+      method: cv.CHAIN_APPROX_SIMPLE,
     );
 
-    //Tạo list idx sẽ chứa các vecVecPoint sau khi sort  
+    //Tạo list idx sẽ chứa các vecVecPoint sau khi sort
     final idx = List.generate(cnts.length, (i) => i);
     //Sort theo diện tich
     idx.sort(
       (a, b) => cv.contourArea(cnts[b]).compareTo(cv.contourArea(cnts[a])),
     );
 
+    //Tìm vị trí contours lớn nhất, mảnh giấy, trang giấy làm bài
     List<cv.Point>? paper;
+
+    //Dựa vào chu vi để biết được
     for (final i in idx) {
       final c = cnts[i];
-      final peri = cv.arcLength(c, true);
+      final peri = cv.arcLength(c, true); //tính chu vi
+      //vì contours lớn nhất có rất nhiều điểm, nên gọi đến approx để làm giảm nhiễu
       final approx = cv.approxPolyDP(c, 0.02 * peri, true);
+      //nếu mà approx ra được countour có 4 cạnh gán tờ giấy bằng approx
       if (approx.length == 4) {
         paper = [for (var j = 0; j < approx.length; j++) approx[j]];
         break;
@@ -149,7 +172,12 @@ class OMRScannerVer2 {
       return resized;
     }
 
+    //Xếp lại vị trí 4 đỉnh theo thứ thự
+    //[top-left, top-right, bottom-right, bottom-left]
     final ordered = cv.VecPoint.fromList(_orderPoints(paper));
+
+    //vì tờ giấy xong khi được lấy ra sẽ có thể bị nghiêng góc,
+    //nên phải xử lý để nó trở thành 1 mặt phẳng hoàn toàn
     final dstSize = (700, 800);
     final dstPts = cv.VecPoint.fromList([
       cv.Point(0, 0),
@@ -158,7 +186,9 @@ class OMRScannerVer2 {
       cv.Point(0, dstSize.$2 - 1),
     ]);
 
+    //Tính ma trận biến đổi phối cảnh (perspective matrix) giữa 2 tập điểm (4 góc thật và 4 góc chuẩn).
     final M = cv.getPerspectiveTransform(ordered, dstPts);
+    //Dùng ma trận đó để biến đổi toàn bộ ảnh – kéo, xoay, làm thẳng ảnh.
     final warped = cv.warpPerspective(resized, M, dstSize);
 
     gray.dispose();
@@ -184,18 +214,25 @@ class OMRScannerVer2 {
   }
 
   /// --- Lọc contour bubble ---
-  static List<int> _filterBubbles(cv.Contours cnts) {
-    final result = <int>[];
+  static List<int> _filterBubbles(cv.VecVecPoint cnts) {
+    final result = <int>[]; 
+    //Duyệt qua từng đường viền
     for (var i = 0; i < cnts.length; i++) {
       final c = cnts[i];
-      final area = cv.contourArea(c);
+      final area = cv.contourArea(c); //tính diện tích
+      // Nếu diện tích quá nhỏ (< 200) → bỏ, vì có thể là nhiễu hoặc chữ in.
+      // Nếu diện tích quá lớn (> 5000) → bỏ, vì đó có thể là khung giấy, bảng câu hỏi, logo.
       if (area < 200 || area > 5000) continue;
+      //Tạo một hình chữ nhật bao quanh contours đó
       final rect = cv.boundingRect(c);
-
+      //tính tỉ lệ ratio
       final ratio = rect.width / rect.height;
-
+      //Nếu tỉ ratio = 1 chắc chắc là 1 hình vuông 
+      // => Cái đường viền của trong đó sẽ là một hình tròn
+      // nếu mà bé < 0.8 hoặc  >1.2 hình rect sẽ có hình một hình chữ nhật, hẹp ngang 
+      // => đó là một hình ellispe không gần giống với hình tròn
       if (ratio > 0.8 && ratio < 1.2) {
-        print("Tạo độ y: ${rect.y} x: ${rect.x} và vị trí ${i}");
+        //từ đó lọc ra những vị trí của contours có câu hỏi
         result.add(i);
       }
     }
@@ -298,12 +335,13 @@ class OMRScannerVer2 {
   /// --- Sắp xếp 4 đỉnh ---
   static List<cv.Point> _orderPoints(List<cv.Point> pts) {
     pts.sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    final tl = pts.first;
-    final br = pts.last;
+    final tl = pts.first; // top left
+    final br = pts.last; // bottom right
     final remain = pts.where((p) => p != tl && p != br).toList();
     remain.sort((a, b) => (a.y - a.x).compareTo(b.y - b.x));
-    final tr = remain.first;
-    final bl = remain.last;
+    final tr = remain.first; // top right
+    final bl = remain.last; // bottom left
+    // [top left, top right, bottom right, bottom left]
     return [tl, tr, br, bl];
   }
 }
