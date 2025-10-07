@@ -1,7 +1,8 @@
-import 'dart:typed_data';
-import 'package:enhance/methods/cv_method.dart';
-import 'package:opencv_dart/opencv.dart' as cv;
-import 'package:opencv_dart/opencv_dart.dart';
+import "dart:typed_data";
+import "package:enhance/methods/cv_method.dart";
+import "package:flutter/widgets.dart";
+import "package:opencv_dart/opencv.dart" as cv;
+import "package:opencv_dart/opencv_dart.dart";
 
 const Map<int, int> answerKey = {0: 1, 1: 4, 2: 0, 3: 2, 4: 0};
 
@@ -26,14 +27,12 @@ class OMRResult {
 }
 
 class OMRScannerVer2 {
+  // ignore: constant_identifier_names
   static const int N_CHOICES = 5;
 
-  static OMRResult scanFromPath(String path) {
-    //Trích xuất hình ảnh ra loại Mat
-    final cv.Mat src = cv.imread(path);
-    //Xử lý ảnh
+  static OMRResult cameraScaning(Mat src) {
     final cv.Mat scanned = _extractPaperAndWarp(src);
-    //Tách hết màu, chỉ để lại đen trắng
+
     final cv.Mat thresh = _toBinary(scanned);
 
     //tiếp tục tìm đường viền
@@ -45,14 +44,14 @@ class OMRScannerVer2 {
 
     //tìm kiếm những lựa chọn
     final bubbles = _filterBubbles(cnts);
-    print(bubbles.length);
+    debugPrint(bubbles.length.toString());
     if (bubbles.isEmpty) throw Exception("Không tìm thấy bubble nào.");
-    
+
     //lọc ra các câu hỏi cùng hàng, một mảng 2 chiều
     List<List<int>> rows = _groupToRows(bubbles, N_CHOICES);
     //Sắp xếp lại thứ tự câu hỏi trong 1 hàng theo thứ tự từ trái sang phải
     rows = _reOrdersRow(rows, cnts);
-    
+
     //đoạn này chỉ để vẽ ảnh thôi
     for (int r = 0; r < rows.length; r++) {
       for (int c in rows[r]) {
@@ -71,12 +70,12 @@ class OMRScannerVer2 {
       }
     }
     cv.imwrite("debug_rows.png", src);
-    
+
     //Danh sách các câu trả lời
     final picks = <int?>[];
     //Số câu trả lời đúng
     int correct = 0;
-    
+
     //lặp qua các câu hỏi, tìm câu trả lời
     for (var q = 0; q < rows.length; q++) {
       final choice = _pickAnswer(thresh, cnts, rows[q]);
@@ -94,9 +93,9 @@ class OMRScannerVer2 {
     final total = rows.length;
     final wrong = total - correct;
 
-    final (_, raw) = cv.imencode('.png', src);
-    final (_, encode) = cv.imencode('.png', scanned);
-    final (_, black) = cv.imencode('.png', thresh);
+    final (_, raw) = cv.imencode(".png", src);
+    final (_, encode) = cv.imencode(".png", scanned);
+    final (_, black) = cv.imencode(".png", thresh);
 
     src.dispose();
     scanned.dispose();
@@ -113,7 +112,92 @@ class OMRScannerVer2 {
     );
   }
 
-  /// --- Tìm tờ giấy và warp ---
+  static OMRResult scanFromPath(String path) {
+    //Trích xuất hình ảnh ra loại Mat
+    final cv.Mat src = cv.imread(path);
+
+    final cv.Mat scanned = _extractPaperAndWarp(src);
+    //Tách hết màu, chỉ để lại đen trắng
+    final cv.Mat thresh = _toBinary(scanned);
+
+    //tiếp tục tìm đường viền
+    final (cnts, _) = cv.findContours(
+      thresh,
+      cv.RETR_EXTERNAL,
+      cv.CHAIN_APPROX_SIMPLE,
+    );
+
+    //tìm kiếm những lựa chọn
+    final bubbles = _filterBubbles(cnts);
+    debugPrint(bubbles.length.toString());
+    if (bubbles.isEmpty) throw Exception("Không tìm thấy bubble nào.");
+
+    //lọc ra các câu hỏi cùng hàng, một mảng 2 chiều
+    List<List<int>> rows = _groupToRows(bubbles, N_CHOICES);
+    //Sắp xếp lại thứ tự câu hỏi trong 1 hàng theo thứ tự từ trái sang phải
+    rows = _reOrdersRow(rows, cnts);
+
+    //đoạn này chỉ để vẽ ảnh thôi
+    for (int r = 0; r < rows.length; r++) {
+      for (int c in rows[r]) {
+        final rect = cv.boundingRect(cnts[c]);
+        //vẽ đường chữ nhật
+        cv.rectangle(scanned, rect, cv.Scalar.all(128)); // vẽ khung bubble
+        //Đặt hình lên
+        cv.putText(
+          scanned,
+          "R$r $c",
+          cv.Point(rect.x, rect.y - 5),
+          cv.FONT_HERSHEY_SIMPLEX,
+          0.4,
+          cv.Scalar.all(0),
+        );
+      }
+    }
+    cv.imwrite("debug_rows.png", src);
+
+    //Danh sách các câu trả lời
+    final picks = <int?>[];
+    //Số câu trả lời đúng
+    int correct = 0;
+
+    //lặp qua các câu hỏi, tìm câu trả lời
+    for (var q = 0; q < rows.length; q++) {
+      final choice = _pickAnswer(thresh, cnts, rows[q]);
+      picks.add(choice);
+    }
+    final mem = picks.reversed.toList();
+
+    for (var c = 0; c < mem.length; c++) {
+      int? answer = mem[c];
+      if (answer != null && answer == answerKey[c]) {
+        correct++;
+      }
+    }
+
+    final total = rows.length;
+    final wrong = total - correct;
+
+    final (_, raw) = cv.imencode(".png", src);
+    final (_, encode) = cv.imencode(".png", scanned);
+    final (_, black) = cv.imencode(".png", thresh);
+
+    src.dispose();
+    scanned.dispose();
+    thresh.dispose();
+
+    return OMRResult(
+      total: total,
+      correct: correct,
+      wrong: wrong,
+      picked: picks,
+      imageBytes: encode,
+      rawBytes: raw,
+      threshBytes: black,
+    );
+  }
+
+  /// --- Tìm tờ giấy mặt phẳng ---
   static cv.Mat _extractPaperAndWarp(cv.Mat src) {
     //resize lại ảnh, để hạn chế các thành phần dư thừa
     final ratio = 800 / src.rows;
@@ -136,11 +220,7 @@ class OMRScannerVer2 {
     );
 
     //Lấy danh sách các đường viền
-    final (cnts, _) = CvMethod.findContours(
-      src: edged,
-      mode: cv.RETR_EXTERNAL,
-      method: cv.CHAIN_APPROX_SIMPLE,
-    );
+    final (cnts, _) = CvMethod.findContours(src: edged);
 
     //Tạo list idx sẽ chứa các vecVecPoint sau khi sort
     final idx = List.generate(cnts.length, (i) => i);
@@ -215,7 +295,7 @@ class OMRScannerVer2 {
 
   /// --- Lọc contour bubble ---
   static List<int> _filterBubbles(cv.VecVecPoint cnts) {
-    final result = <int>[]; 
+    final result = <int>[];
     //Duyệt qua từng đường viền
     for (var i = 0; i < cnts.length; i++) {
       final c = cnts[i];
@@ -227,9 +307,9 @@ class OMRScannerVer2 {
       final rect = cv.boundingRect(c);
       //tính tỉ lệ ratio
       final ratio = rect.width / rect.height;
-      //Nếu tỉ ratio = 1 chắc chắc là 1 hình vuông 
+      //Nếu tỉ ratio = 1 chắc chắc là 1 hình vuông
       // => Cái đường viền của trong đó sẽ là một hình tròn
-      // nếu mà bé < 0.8 hoặc  >1.2 hình rect sẽ có hình một hình chữ nhật, hẹp ngang 
+      // nếu mà bé < 0.8 hoặc  >1.2 hình rect sẽ có hình một hình chữ nhật, hẹp ngang
       // => đó là một hình ellispe không gần giống với hình tròn
       if (ratio > 0.8 && ratio < 1.2) {
         //từ đó lọc ra những vị trí của contours có câu hỏi
@@ -287,6 +367,7 @@ class OMRScannerVer2 {
     final ratios = <double>[];
 
     // kernel nhỏ để bỏ viền in sẵn
+    //kernel: là một ma trận nhỏ (3x3), có dạng hình elip, dùng để làm erode (co lại) các vùng tô, giúp bỏ đi các viền in sẵn hoặc nhiễu.
     final kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3));
 
     for (var i = 0; i < contourIdxs.length; i++) {

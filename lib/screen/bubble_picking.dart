@@ -1,6 +1,6 @@
-import 'package:enhance/methods/meomeo.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import "package:enhance/methods/meomeo.dart";
+import "package:flutter/material.dart";
+import "package:image_picker/image_picker.dart";
 
 class BubblePicking extends StatefulWidget {
   const BubblePicking({super.key});
@@ -12,8 +12,8 @@ class BubblePicking extends StatefulWidget {
 class _BubblePickingState extends State<BubblePicking> {
   OMRResult omrResult = OMRResult(
     total: 0,
-    correct: 0,
     wrong: 0,
+    correct: 0,
     picked: [],
     imageBytes: null,
     rawBytes: null,
@@ -34,7 +34,7 @@ class _BubblePickingState extends State<BubblePicking> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('ORM')),
+        appBar: AppBar(title: const Text("ORM")),
         body: Container(
           alignment: Alignment.center,
           child: Column(

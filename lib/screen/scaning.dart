@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:opencv_dart/opencv.dart' as cv;
-import 'package:camera/camera.dart';
+import "package:flutter/material.dart";
+import "package:opencv_dart/opencv.dart" as cv;
+import "package:camera/camera.dart";
 
 class Scaning extends StatefulWidget {
   const Scaning({super.key});
@@ -16,12 +16,12 @@ class _ScaningState extends State<Scaning> {
 
   @override
   void initState() {
+    _initializeCamera();
     super.initState();
     // Initialize the camera
-    _initializeCamera();
   }
 
-  // Declare 'availableCameras' before use
+  // Declare "availableCameras" before use
   Future<void> _initializeCamera() async {
     
     // Now, we can safely assign it to the cameras list

@@ -1,6 +1,7 @@
-import 'package:enhance/screen/bubble_picking.dart';
-import 'package:enhance/screen/scaning.dart';
-import 'package:flutter/material.dart';
+import "package:enhance/screen/bubble_picking.dart";
+import "package:enhance/screen/camera_screen/index.dart";
+import "package:enhance/screen/scaning.dart";
+import "package:flutter/material.dart";
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -31,7 +32,7 @@ class HomeScreen extends StatelessWidget {
                 context,
                 title: "Direct Scaning",
                 color: Colors.green,
-                route: const Scaning(),
+                route: const CameraScreen(),
               ),
             ],
           ),
