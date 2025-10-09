@@ -1,4 +1,4 @@
-import "dart:typed_data";
+import "package:enhance/interface/index.dart";
 import "package:enhance/methods/cv_method.dart";
 import "package:flutter/widgets.dart";
 import "package:opencv_dart/opencv.dart" as cv;
@@ -6,25 +6,6 @@ import "package:opencv_dart/opencv_dart.dart";
 
 const Map<int, int> answerKey = {0: 1, 1: 4, 2: 0, 3: 2, 4: 0};
 
-class OMRResult {
-  final int total;
-  final int correct;
-  final int wrong;
-  final List<int?> picked;
-  final Uint8List? imageBytes;
-  final Uint8List? rawBytes;
-  final Uint8List? threshBytes;
-
-  OMRResult({
-    required this.total,
-    required this.correct,
-    required this.wrong,
-    required this.picked,
-    required this.imageBytes,
-    required this.rawBytes,
-    required this.threshBytes,
-  });
-}
 
 class OMRScannerVer2 {
   // ignore: constant_identifier_names
@@ -231,6 +212,7 @@ class OMRScannerVer2 {
 
     //Tìm vị trí contours lớn nhất, mảnh giấy, trang giấy làm bài
     List<cv.Point>? paper;
+    print(paper);
 
     //Dựa vào chu vi để biết được
     for (final i in idx) {

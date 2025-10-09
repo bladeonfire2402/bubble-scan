@@ -1,4 +1,4 @@
-import "package:enhance/screen/landing.dart";
+import "package:enhance/root.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
@@ -16,10 +16,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     Future.delayed(const Duration(seconds: 3), () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
+      Navigator.push(context, MaterialPageRoute(builder: (context) => Root()));
     });
   }
 
@@ -35,16 +32,14 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            colors: [color.secondary, color.primaryContainer],
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          colors: [color.secondary, color.primaryContainer],
         ),
-        child: Center(child: Image.asset("assets/images/logo.png", width: 300)),
       ),
+      child: Center(child: Image.asset("assets/images/logo.png", width: 300)),
     );
   }
 }

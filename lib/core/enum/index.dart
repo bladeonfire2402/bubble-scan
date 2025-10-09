@@ -1,3 +1,3 @@
-enum ProccessType {  unloaded, loaded, error}
+enum ProccessType { unloaded, loaded, processing, successfull, error }
 
-enum HandleImgMethod { picking, scanning}
+enum HandleImgMethod { picking, scanning }

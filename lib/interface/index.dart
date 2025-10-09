@@ -1,6 +1,8 @@
 import "package:enhance/core/enum/index.dart";
 import "dart:typed_data";
 
+import "package:flutter/widgets.dart";
+
 class OMRResult {
   final int total;
   final int wrong;
@@ -20,5 +22,16 @@ class OMRResult {
     this.correct = 0,
     required this.picked,
     this.process = ProccessType.unloaded,
+  });
+}
+
+// Sửa onChange thành non-nullable cho rõ ràng
+class MenuItem {
+  final IconData icon;
+  final Widget widget;
+
+  const MenuItem({
+    required this.icon,
+    required this.widget,
   });
 }

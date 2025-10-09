@@ -54,7 +54,7 @@ class _CameraScreenState extends State<CameraScreen> {
       if (frameCounter % 3 == 0) {
         final imgMat = _convertCameraImageToMat(image);
         if (imgMat.channels == 3) {
-          print("meomeo");
+          print("working");
           print(frameCounter);
           // bool ishomeWork = isHomeWork(img: imgMat);
 

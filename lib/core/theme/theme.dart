@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 /// EDU BLUE – PALETTE
 class EduColors {
   // Core
@@ -46,9 +47,10 @@ final ThemeData eduLightTheme = ThemeData(
   scaffoldBackgroundColor: EduColors.background,
 
   // Typography
-  textTheme: const TextTheme(
+  textTheme:  TextTheme(
     headlineMedium: TextStyle(
       fontWeight: FontWeight.w700,
+      fontSize: 30,
       color: EduColors.textPrimary,
     ),
     titleLarge: TextStyle(

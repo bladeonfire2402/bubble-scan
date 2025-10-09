@@ -15,14 +15,16 @@ class OmrController {
 
     //Xử lý để các phần dư thừa
     final resized = _resizeImage(src: mat);
+
     //Chuyển ảnh qua màu xám
     final gray = CvMethod.convertGray(src: resized);
+
     //Làm mờ trơn ảnh qua bộ lọc gaussianBlur
-    final blurred = CvMethod.blurring(src: gray, sigmaX: 0, kSize: (5, 5));
+    final blurred = CvMethod.blurring(src: gray);
     //xài thuật toán canny để quét ra các cạnh và biên
     final edged = CvMethod.egdering(src: blurred);
 
-    late cv.Mat scanned;
+    cv.Mat? scanned;
 
     //Lấy danh sách các đường viền
     var (cnts, _) = CvMethod.findContours(src: edged);
@@ -30,8 +32,9 @@ class OmrController {
     //khuôn giấy
     final paper = getPaper(cnts: cnts);
 
-    if (paper != null) {
-      //vẽ lại ra ma trận để xử lý
+    if (paper == null) {
+      scanned = resized;
+    } else {
       scanned = _wrappedMatrix(list: paper, resized: resized);
     }
 
@@ -65,7 +68,7 @@ class OmrController {
       total: rows.length,
       imageBytes: encode,
       threshBytes: black,
-      process: ProccessType.loaded,
+      process: ProccessType.successfull,
       wrong: rows.length - corrects,
     );
   }
@@ -102,10 +105,12 @@ class OmrController {
     return (picks, correct);
   }
 
-  //Hàm lấy các điểm 4 cạnh khuôn hình chữ nhật của tờ giấy
+  //Hàm lấy các điểm 4 cạnh khuôn hình chữ nhật của tờ giấy để sau đó có thể sử dụng
+  // làm phẳng tờ giấy góc vuông không để tờ giấy bị nghiêng, tăng được độ chính xác
   static List<cv.Point>? getPaper({required cv.VecVecPoint cnts}) {
     //Tạo list idx sẽ chứa các vecVecPoint sau khi sort
     final idx = List.generate(cnts.length, (i) => i);
+
     //Sort theo diện tich
     idx.sort(
       (a, b) => cv.contourArea(cnts[b]).compareTo(cv.contourArea(cnts[a])),
@@ -200,6 +205,21 @@ class OmrController {
       // => đó là một hình ellispe không gần giống với hình tròn
       if (ratio > 0.8 && ratio < 1.2) {
         //từ đó lọc ra những vị trí của contours có câu hỏi
+        result.add(i);
+      }
+    }
+    return result;
+  }
+
+  static List<int> filterBubbless(cv.VecVecPoint cnts) {
+    final result = <int>[];
+    for (var i = 0; i < cnts.length; i++) {
+      final c = cnts[i];
+      final area = cv.contourArea(c);
+      if (area < 200 || area > 5000) continue;
+      final rect = cv.boundingRect(c);
+      final ratio = rect.width / rect.height;
+      if (ratio > 0.8 && ratio < 1.2) {
         result.add(i);
       }
     }
