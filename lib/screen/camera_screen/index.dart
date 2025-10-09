@@ -1,10 +1,17 @@
 import "package:enhance/controller/omr_controller.dart";
+import "package:enhance/main.dart";
 import "package:enhance/methods/cv_method.dart";
+import "package:enhance/screen/input_image.dart";
 import "package:opencv_dart/opencv.dart" as cv;
-import "package:enhance/core/enum/index.dart";
 import "package:enhance/interface/index.dart";
 import "package:flutter/material.dart";
-import "package:camera/camera.dart";
+import 'package:camera/camera.dart';
+// found in the LICENSE file.
+import 'dart:async';
+import 'dart:async';
+import 'dart:io';
+import 'dart:math';
+import 'dart:ui' as ui;
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -16,14 +23,15 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   String error = "";
   CameraController? _controller;
-  List<CameraDescription>? _cameras;
+  ui.Image? _opencvPreviewImage;
+
 
   OMRResult result = OMRResult(picked: []);
   //biến này để hạn chế gọi lại hàm xử lý ảnh
   int frameCounter = 0;
 
   void initCamera() async {
-    _controller = CameraController(_cameras![0], ResolutionPreset.max);
+    _controller = CameraController(cameras![0], ResolutionPreset.max);
     _controller!
         .initialize()
         .then((_) {
@@ -47,27 +55,95 @@ class _CameraScreenState extends State<CameraScreen> {
         });
   }
 
-  void startVideo() {
-    _controller!.startImageStream((CameraImage image) {
-      frameCounter++;
-      // Chỉ xử lý mỗi 5 khung hình
-      if (frameCounter % 3 == 0) {
-        final imgMat = _convertCameraImageToMat(image);
-        if (imgMat.channels == 3) {
-          print("working");
-          print(frameCounter);
-          // bool ishomeWork = isHomeWork(img: imgMat);
+  // void _processImage(CameraImage image) async {
+  //   final format = InputImageFormatValue.fromRawValue(image.format.raw);
+  //   if (format == null) return;
 
-          //final mat = cv.cvtColor(imgMat, cv.COLOR_BGR2GRAY);
-          imgMat.release();
+  //   final bytes = switch (format) {
+  //     InputImageFormat.yuv_420_888 => yuv420ToRGBA8888(image),
+  //     InputImageFormat.nv21 => nv21ToRGBA8888(image),
+  //     InputImageFormat.bgra8888 => bgraToRgbaInPlace(image.planes.first.bytes),
+  //     _ => throw UnimplementedError(),
+  //   };
+
+   
+
+  //   cv.Mat mat = cv.Mat.fromList(
+  //     image.height,
+  //     image.width,
+  //     cv.MatType.CV_8UC4,
+  //     bytes,
+  //   );
+
+  //   final sensorOrientation = _controller?.description.sensorOrientation;
+  //   var rotationCompensation = _orientations[_controller?.value.deviceOrientation];
+  //   if (rotationCompensation == null || sensorOrientation == null) return;
+  //   if (controller?.description.lensDirection == CameraLensDirection.front) {
+  //     // front-facing
+  //     rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
+  //   } else {
+  //     // back-facing
+  //     rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+  //   }
+  //   switch (rotationCompensation) {
+  //     case 90:
+  //       await cv.rotateAsync(mat, cv.ROTATE_90_CLOCKWISE, dst: mat);
+  //     case 180:
+  //       await cv.rotateAsync(mat, cv.ROTATE_180, dst: mat);
+  //     case 270:
+  //       await cv.rotateAsync(mat, cv.ROTATE_90_COUNTERCLOCKWISE, dst: mat);
+  //     default:
+  //   }
+
+  //   // downsampling
+  //   await cv.resizeAsync(mat, (mat.width ~/ 2, mat.height ~/ 2), dst: mat);
+
+  //   // simulate object detection drawing
+  //   final x = Random().nextInt(50);
+  //   final y = Random().nextInt(50);
+  //   await cv.rectangleAsync(
+  //     mat,
+  //     cv.Rect(
+  //       x,
+  //       y,
+  //       Random().nextInt(mat.width),
+  //       Random().nextInt(mat.height),
+  //     ),
+  //     cv.Scalar.red,
+  //     thickness: 3,
+  //   );
+  //   await cv.putTextAsync(
+  //     mat,
+  //     'Hello World',
+  //     cv.Point(x, y),
+  //     cv.FONT_HERSHEY_SIMPLEX,
+  //     1,
+  //     cv.Scalar.blue,
+  //     thickness: 3,
+  //   );
+
+  //   // convert to ui.Image
+  //   final uiImage = await mat.toUiImage();
+  //   mat.dispose();
+
+  //   setState(() {
+  //     _opencvPreviewImage = uiImage;
+  //   });
+  // }
+
+  Future<void> startVideo() async {
+    if (_controller != null) {
+      _controller!.startImageStream((CameraImage image) {
+        frameCounter++;
+        //sau 31 frame mới gọi 1 lần
+        if (frameCounter % 37 == 0) {
+          final planes = image.planes;
+          final bytes = planes[0].bytes;
+
+          // final matImg = CvMethod.convertGray(src: imgMat);
         }
-        // bool ishomeWork = isHomeWork(img: imgMat);
-        // if (ishomeWork == true) {
-        //   //call hàm chấm điểm
-        //   result = OmrController.handleGrade(img: imgMat);
-        // }
-      }
-    });
+      });
+    }
   }
 
   bool isHomeWork({required cv.Mat img}) {
@@ -110,18 +186,18 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void setUp() async {
     // Lấy danh sách các camera
-    _cameras = await availableCameras();
 
     // Kiểm tra xem có camera hay không
-    if (_cameras!.isEmpty) {
+    if (cameras.isEmpty) {
       setState(() {
         error = "Không có camera nào khả dụng";
+        print(error);
       });
       return;
     }
 
     // Khởi tạo camera
-    _controller = CameraController(_cameras![0], ResolutionPreset.max);
+    _controller = CameraController(cameras[0], ResolutionPreset.max);
 
     // Khởi tạo camera
     await _controller!
@@ -146,11 +222,6 @@ class _CameraScreenState extends State<CameraScreen> {
         });
   }
 
-  String handleAnswer(int answer) {
-    List<String> formatAnswer = ["A", "B", "C", "D", "E"];
-    return formatAnswer[answer];
-  }
-
   @override
   void initState() {
     setUp();
@@ -165,48 +236,25 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_controller!.value.isInitialized) {
+    if (_controller == null) {
       return Container();
     }
-    return MaterialApp(
-      home: Column(
-        children: [
-          Expanded(child: CameraPreview(_controller!)),
-          if (result.process == ProccessType.loaded)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Tổng số câu hỏi: ${result.total}\n"
-                    "Số câu trả lời chính xác: ${result.correct}\n"
-                    "Số câu trả lời sai: ${result.wrong}",
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: result.picked.length,
-                      itemBuilder: (context, index) {
-                        final pick = result.picked[index]!;
-                        final correctAnswer = OmrController.answerKey[index]!;
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text("Câu đã chọn: ${handleAnswer(pick)}"),
-                            if (pick != correctAnswer)
-                              Text(
-                                "Câu trả lời đúng: ${handleAnswer(correctAnswer)}",
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+    return Column(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              border: Border.all(color: Colors.blue, width: 3.0),
             ),
-        ],
-      ),
+            child: CameraPreview(_controller!, child: Text("meomeo")),
+          ),
+        ),
+        Expanded(child: Container(color: Colors.white)),
+      ],
     );
   }
 }

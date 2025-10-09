@@ -1,4 +1,5 @@
 import "package:enhance/screen/camera_screen/index.dart";
+import "package:enhance/screen/test.dart";
 import "package:enhance/screen/upload_screen/index.dart";
 import "package:enhance/widgets/my_bottom_nav/index.dart";
 import "package:enhance/interface/index.dart";
@@ -18,7 +19,7 @@ class _RootState extends State<Root> {
     setState(() => screenIndex = i);
   }
 
-  late final List<MenuItem> screens = [
+  final List<MenuItem> screens = [
     MenuItem(icon: Icons.inventory, widget: UploadScreen()),
     MenuItem(icon: Icons.scanner, widget: CameraScreen()),
   ];
