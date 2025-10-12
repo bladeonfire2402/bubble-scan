@@ -1,9 +1,9 @@
 import "package:enhance/methods/cv_method.dart";
-import "package:flutter/foundation.dart";
 import "package:opencv_dart/opencv.dart" as cv;
 import "package:enhance/core/enum/index.dart";
 import "package:enhance/interface/index.dart";
 import "package:opencv_dart/opencv_dart.dart";
+import "package:flutter/foundation.dart";
 
 class OmrController {
   // ignore: constant_identifier_names
@@ -79,6 +79,47 @@ class OmrController {
       wrong: rows.length - corrects,
       process: ProccessType.successfull,
     );
+  }
+
+  static (bool, int, Uint8List) isTest({required cv.Mat img}) {
+    final resized = _resizeImage(src: img);
+    final gray = CvMethod.convertGray(src: resized);
+    final blurred = CvMethod.blurring(src: gray);
+    final edged = CvMethod.egdering(src: blurred);
+    final thresh = _toBinary(resized);
+
+    cv.Mat? scanned;
+
+    var (cnts, _) = CvMethod.findContours(src: edged);
+
+    final paper = getPaper(cnts: cnts);
+    if (paper == null) {
+      print(paper);
+      scanned = resized;
+    } else {
+      print(paper);
+      scanned = _wrappedMatrix(list: paper, resized: resized);
+    }
+
+    (cnts, _) = CvMethod.findContours(src: thresh);
+
+    final bubbles = _filterBubbles(cnts);
+    print(bubbles);
+    print(bubbles.length);
+
+
+    // List<List<int>> rows = _groupToRows(bubbles, N_CHOICES);
+    // rows = _reOrdersRow(rows, cnts);
+
+    // _drawPoints(rows: rows, cnts: cnts, scanned: scanned);
+
+    final (_, pngBytes) = cv.imencode(".png", scanned);
+
+    if (bubbles.length >= 25) {
+      return (true, bubbles.length, pngBytes);
+    }
+
+    return (false, bubbles.length, pngBytes);
   }
 
   //Hàm cắt hình
@@ -160,7 +201,7 @@ class OmrController {
 
     //Tính ma trận biến đổi phối cảnh (perspective matrix) giữa 2 tập điểm (4 góc thật và 4 góc chuẩn).
     final M = cv.getPerspectiveTransform(ordered, dstPts);
-    //Dùng ma trận đó để biến đổi toàn bộ ảnh – kéo, xoay, làm thẳng ảnh.
+    //Dùng ma trận đó để bdiến đổi toàn bộ ảnh – kéo, xoay, làm thẳng ảnh.
     final warped = cv.warpPerspective(resized, M, dstSize);
 
     return warped;
@@ -214,21 +255,6 @@ class OmrController {
       // => đó là một hình ellispe không gần giống với hình tròn
       if (ratio > 0.8 && ratio < 1.2) {
         //từ đó lọc ra những vị trí của contours có câu hỏi
-        result.add(i);
-      }
-    }
-    return result;
-  }
-
-  static List<int> filterBubbless(cv.VecVecPoint cnts) {
-    final result = <int>[];
-    for (var i = 0; i < cnts.length; i++) {
-      final c = cnts[i];
-      final area = cv.contourArea(c);
-      if (area < 200 || area > 5000) continue;
-      final rect = cv.boundingRect(c);
-      final ratio = rect.width / rect.height;
-      if (ratio > 0.8 && ratio < 1.2) {
         result.add(i);
       }
     }

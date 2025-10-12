@@ -28,8 +28,8 @@ class CvMethod {
   //xử lý ảnh để nó lộ ra các đường viền  nhưng khung giấy, đường viền, ô tròn
   static cv.Mat egdering({
     required cv.Mat src,
-     double lowThresh = 50,
-     double highThresh = 150,
+    double lowThresh = 50,
+    double highThresh = 150,
   }) {
     return cv.canny(src, lowThresh, highThresh);
   }

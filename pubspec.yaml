@@ -18,6 +18,8 @@ dependencies:
   camera: ^0.11.2
   video_player: ^2.10.0
   fl_chart: ^1.1.1
+  yuv_converter: ^0.0.2
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:

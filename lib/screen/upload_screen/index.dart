@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:enhance/controller/omr_controller.dart';
 import 'package:enhance/interface/index.dart';
 import 'package:enhance/screen/result_screen/index.dart';
