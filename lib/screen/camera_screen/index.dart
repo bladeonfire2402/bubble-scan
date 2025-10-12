@@ -1,5 +1,4 @@
 import "dart:typed_data";
-
 import "package:enhance/controller/omr_controller.dart";
 import "package:enhance/main.dart";
 import "package:enhance/methods/cv_method.dart";
@@ -28,30 +27,30 @@ class _CameraScreenState extends State<CameraScreen> {
   //biến này để hạn chế gọi lại hàm xử lý ảnh
   int frameCounter = 0;
 
-  // void initCamera() async {
-  //   _controller = CameraController(cameras![0], ResolutionPreset.max);
-  //   _controller!
-  //       .initialize()
-  //       .then((_) {
-  //         if (!mounted) {
-  //           return;
-  //         }
-  //       })
-  //       .catchError((Object e) {
-  //         if (e is CameraException) {
-  //           switch (e.code) {
-  //             case "CameraAccessDenied":
-  //               error = "Vui lòng cho phép truy cập camera";
-  //               setState(() {});
-  //               break;
-  //             default:
-  //               error = "Lỗi camera";
-  //               setState(() {});
-  //               break;
-  //           }
-  //         }
-  //       });
-  // }
+  void initCamera() async {
+    _controller = CameraController(cameras![0], ResolutionPreset.max);
+    _controller!
+        .initialize()
+        .then((_) {
+          if (!mounted) {
+            return;
+          }
+        })
+        .catchError((Object e) {
+          if (e is CameraException) {
+            switch (e.code) {
+              case "CameraAccessDenied":
+                error = "Vui lòng cho phép truy cập camera";
+                setState(() {});
+                break;
+              default:
+                error = "Lỗi camera";
+                setState(() {});
+                break;
+            }
+          }
+        });
+  }
 
   Future<void> startVideo() async {
     if (_controller != null) {
@@ -129,16 +128,16 @@ class _CameraScreenState extends State<CameraScreen> {
     // Lấy danh sách các camera
 
     // Kiểm tra xem có camera hay không
-    // if (cameras.isEmpty) {
-    //   setState(() {
-    //     error = "Không có camera nào khả dụng";
-    //     print(error);
-    //   });
-    //   return;
-    // }
+    if (cameras.isEmpty) {
+      setState(() {
+        error = "Không có camera nào khả dụng";
+        print(error);
+      });
+      return;
+    }
 
-    // // Khởi tạo camera
-    // _controller = CameraController(cameras[0], ResolutionPreset.max);
+    // Khởi tạo camera
+    _controller = CameraController(cameras[0], ResolutionPreset.max);
 
     // Khởi tạo camera
     await _controller!
@@ -177,26 +176,25 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // if (_controller == null) {
-    //   return Container();
-    // }
-    // return Column(
-    //   children: [
-    //     Expanded(
-    //       flex: 3,
-    //       child: Container(
-    //         width: double.infinity,
-    //         padding: const EdgeInsets.all(30),
-    //         decoration: BoxDecoration(
-    //           color: Colors.blue,
-    //           border: Border.all(color: Colors.blue, width: 3.0),
-    //         ),
-    //         child: CameraPreview(_controller!, child: Text("meomeo")),
-    //       ),
-    //     ),
-    //     Expanded(child: Container(color: Colors.white)),
-    //   ],
-    // );
-    return Placeholder();
+    if (_controller!.value.isInitialized) {
+      return Container();
+    }
+    return Column(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              border: Border.all(color: Colors.blue, width: 3.0),
+            ),
+            child: CameraPreview(_controller!, child: Text("meomeo")),
+          ),
+        ),
+        Expanded(child: Container(color: Colors.white)),
+      ],
+    );
   }
 }

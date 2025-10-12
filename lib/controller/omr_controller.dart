@@ -1,4 +1,5 @@
 import "package:enhance/methods/cv_method.dart";
+import "package:flutter/foundation.dart";
 import "package:opencv_dart/opencv.dart" as cv;
 import "package:enhance/core/enum/index.dart";
 import "package:enhance/interface/index.dart";
@@ -109,8 +110,7 @@ class OmrController {
       }
     }
 
-    print(picks);
-
+    debugPrint(picks.toString());
     return (picks, correct);
   }
 
