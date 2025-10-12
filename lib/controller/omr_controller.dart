@@ -50,6 +50,8 @@ class OmrController {
 
     //lọc ra các câu hỏi cùng hàng, một mảng 2 chiều
     List<List<int>> rows = _groupToRows(bubbles, N_CHOICES);
+    rows = _reOrdersRow(rows, cnts);
+    print(rows);
 
     final (picks, corrects) = _getAnswerAndCorrect(
       cnts: cnts,
@@ -57,19 +59,24 @@ class OmrController {
       src: thresh,
     );
 
+    //Vẽ các điểm lên cho dễ nhìn
+    _drawPoints(rows: rows, cnts: cnts, scanned: scanned);
+
     final (_, raw) = cv.imencode(".png", mat);
     final (_, black) = cv.imencode(".png", thresh);
     final (_, encode) = cv.imencode(".png", scanned);
+    final (_, edge) = cv.imencode(".png", edged);
 
     return OMRResult(
       picked: picks,
       rawBytes: raw,
+      edgeBytes: edge,
       correct: corrects,
       total: rows.length,
       imageBytes: encode,
       threshBytes: black,
-      process: ProccessType.successfull,
       wrong: rows.length - corrects,
+      process: ProccessType.successfull,
     );
   }
 
@@ -101,6 +108,8 @@ class OmrController {
         correct++;
       }
     }
+
+    print(picks);
 
     return (picks, correct);
   }
@@ -297,5 +306,50 @@ class OmrController {
     if (second > 0.9 * bestRatio) return null;
 
     return winner;
+  }
+
+  static List<List<int>> _reOrdersRow(List<List<int>> rows, VecVecPoint cnts) {
+    List<List<int>> newOrders = [];
+
+    for (var r = 0; r < rows.length; r++) {
+      // Lấy danh sách index trong hàng
+      List<int> temp = List.from(rows[r]);
+
+      // Sắp xếp theo vị trí x (trái -> phải)
+      temp.sort((a, b) {
+        final rectA = cv.boundingRect(cnts[a]);
+        final rectB = cv.boundingRect(cnts[b]);
+        return rectA.x.compareTo(rectB.x);
+      });
+
+      // Thêm hàng đã sắp xếp vào danh sách mới
+      newOrders.add(temp);
+    }
+
+    return newOrders;
+  }
+
+  static void _drawPoints({
+    required List<List<int>> rows,
+    required cv.VecVecPoint cnts,
+    required cv.Mat scanned,
+  }) {
+    //đoạn này chỉ để vẽ ảnh thôi
+    for (int r = 0; r < rows.length; r++) {
+      for (int c in rows[r]) {
+        final rect = cv.boundingRect(cnts[c]);
+        //vẽ đường chữ nhật
+        cv.rectangle(scanned, rect, cv.Scalar.all(128)); // vẽ khung bubble
+        //Đặt hình lên
+        cv.putText(
+          scanned,
+          "R$r $c",
+          cv.Point(rect.x, rect.y - 5),
+          cv.FONT_HERSHEY_SIMPLEX,
+          0.4,
+          cv.Scalar.all(0),
+        );
+      }
+    }
   }
 }

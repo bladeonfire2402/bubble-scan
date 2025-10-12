@@ -1,6 +1,5 @@
 import 'package:enhance/controller/omr_controller.dart';
 import 'package:enhance/interface/index.dart';
-import 'package:enhance/methods/meomeo.dart';
 import 'package:enhance/screen/result_screen/index.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:enhance/core/enum/index.dart';
@@ -34,15 +33,12 @@ class _UploadScreenState extends State<UploadScreen> {
       _changeProcess(ProccessType.loaded);
       _changeProcess(ProccessType.processing);
       Future.delayed(Duration(seconds: 1), () {
-        // Code bạn muốn thực thi sau 2 giây
         result = OmrController.handleGrade(path: img.path);
-        //result = OMRScannerVer2.scanFromPath(img.path);
         if (result.process == ProccessType.successfull) {
           _changeProcess(ProccessType.successfull);
         }
+        _changeProcess(ProccessType.successfull);
       });
-
-      // setState(() => omrResult = OMRScannerVer2.scanFromPath(img.path));
     }
   }
 
@@ -53,11 +49,11 @@ class _UploadScreenState extends State<UploadScreen> {
         color: process == ProccessType.successfull ? Colors.blue : Colors.grey,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: GestureDetector(
-        onTap: process == ProccessType.successfull
+      child: TextButton(
+        onPressed: process == ProccessType.successfull
             ? () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => ResultScreen()),
+                MaterialPageRoute(builder: (_) => ResultScreen(result: result)),
               )
             : null,
         child: const Text("View Result", style: TextStyle(color: Colors.white)),

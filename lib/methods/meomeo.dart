@@ -1,11 +1,10 @@
-import "package:enhance/interface/index.dart";
 import "package:enhance/methods/cv_method.dart";
-import "package:flutter/widgets.dart";
 import "package:opencv_dart/opencv.dart" as cv;
 import "package:opencv_dart/opencv_dart.dart";
+import "package:enhance/interface/index.dart";
+import "package:flutter/widgets.dart";
 
 const Map<int, int> answerKey = {0: 1, 1: 4, 2: 0, 3: 2, 4: 0};
-
 
 class OMRScannerVer2 {
   // ignore: constant_identifier_names
@@ -62,6 +61,7 @@ class OMRScannerVer2 {
       final choice = _pickAnswer(thresh, cnts, rows[q]);
       picks.add(choice);
     }
+    print("Các câu đã chọn $picks");
     final mem = picks.reversed.toList();
 
     for (var c = 0; c < mem.length; c++) {
@@ -147,6 +147,7 @@ class OMRScannerVer2 {
       final choice = _pickAnswer(thresh, cnts, rows[q]);
       picks.add(choice);
     }
+    print(picks);
     final mem = picks.reversed.toList();
 
     for (var c = 0; c < mem.length; c++) {
